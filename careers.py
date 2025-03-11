@@ -87,6 +87,23 @@ conn.commit()
 
 careers_blueprint = Blueprint('careers', __name__)
 
+# Function to send email using SNS
+def send_email_via_sns(person_name, position_name, topic_arn):
+    sns_client = boto3.client('sns')
+
+    subject = f"{person_name} applied for {position_name}"
+    message = f"Dear Team,\n\n{person_name} has applied for the position of {position_name}.\n\nBest regards,\nYour Recruitment Team"
+
+    try:
+        response = sns_client.publish(
+            TopicArn=topic_arn,  # ARN of the SNS topic
+            Subject=subject,
+            Message=message
+        )
+        print(f"Email sent successfully. Message ID: {response['MessageId']}")
+    except ClientError as e:
+        print(f"Error sending email: {e}")
+
 @careers_blueprint.route('', methods=['GET', 'POST'])
 def careers():
     if request.method == 'POST':
@@ -131,6 +148,10 @@ def careers():
             """)
             cursor.execute(insert_query, (user_name, user_experience, user_position, user_ctc, resume_url, user_phone_number, user_expected_ctc))
             conn.commit()
+
+            # Send the email via SNS after successful database entry
+            sns_topic_arn = os.getenv('SNS_TOPIC_ARN')  # ARN of the SNS topic
+            send_email_via_sns(user_name, user_position, sns_topic_arn)
 
             # Return success message
             return f"File '{file_name}' uploaded successfully to S3 and your application has been submitted."
