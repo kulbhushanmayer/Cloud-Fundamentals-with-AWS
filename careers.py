@@ -54,7 +54,7 @@ conn = psycopg2.connect(
     sslmode='require'  # SSL is recommended for RDS connections
 )
 
-# Create the table if it doesn't exist
+# Create the table if it doesn't exist and add new columns if they don't exist
 cursor = conn.cursor()
 cursor.execute("""
     CREATE TABLE IF NOT EXISTS careers (
@@ -64,8 +64,24 @@ cursor.execute("""
         position VARCHAR(255),
         ctc INT,
         resume_url VARCHAR(255),
+        phone_number VARCHAR(20),
+        expected_ctc INT,
         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
+""")
+conn.commit()
+
+# Add new columns if they don't exist
+cursor.execute("""
+    DO $$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='careers' AND column_name='phone_number') THEN
+            ALTER TABLE careers ADD COLUMN phone_number VARCHAR(20);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='careers' AND column_name='expected_ctc') THEN
+            ALTER TABLE careers ADD COLUMN expected_ctc INT;
+        END IF;
+    END $$;
 """)
 conn.commit()
 
@@ -79,6 +95,8 @@ def careers():
         user_experience = request.form.get('experience')
         user_position = request.form.get('position')
         user_ctc = request.form.get('ctc')
+        user_phone_number = request.form.get('phone_number')
+        user_expected_ctc = request.form.get('expected_ctc')
 
         # Handle file upload
         if 'file' not in request.files:
@@ -108,14 +126,14 @@ def careers():
 
             # Insert the data into the 'careers' table
             insert_query = sql.SQL("""
-                INSERT INTO careers (name, experience, position, ctc, resume_url)
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO careers (name, experience, position, ctc, resume_url, phone_number, expected_ctc)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
             """)
-            cursor.execute(insert_query, (user_name, user_experience, user_position, user_ctc, resume_url))
+            cursor.execute(insert_query, (user_name, user_experience, user_position, user_ctc, resume_url, user_phone_number, user_expected_ctc))
             conn.commit()
 
             # Return success message
-            return f"File '{file_name}' uploaded successfully! Your application has been submitted."
+            return f"File '{file_name}' uploaded successfully to S3 and your application has been submitted."
 
         except NoCredentialsError:
             return "Credentials not available", 400
