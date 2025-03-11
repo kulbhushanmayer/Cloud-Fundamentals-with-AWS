@@ -6,6 +6,7 @@ import psycopg2
 from psycopg2 import sql
 from botocore.exceptions import NoCredentialsError, ClientError
 import time
+import json
 
 # Initialize the S3 client
 s3_client = boto3.client(
@@ -22,30 +23,28 @@ rds_db_name = 'thinknyx'
 rds_user = os.getenv('RDS_USER')  # Postgres username
 rds_port = '5432'  # Default PostgreSQL port
 
-# Initialize RDS client to generate IAM authentication token
-rds_client = boto3.client('rds', region_name=os.getenv('AWS_REGION'))
+# Initialize Secrets Manager client
+secrets_client = boto3.client('secretsmanager', region_name=os.getenv('AWS_REGION'))
 
-# Function to get IAM authentication token
-def get_rds_auth_token():
+# Function to get RDS password from Secrets Manager
+def get_rds_password():
     try:
-        token = rds_client.generate_db_auth_token(
-            DBHostname=rds_host,
-            Port=rds_port,
-            DBUsername=rds_user,
-            Region=os.getenv('AWS_REGION')
-        )
-        return token
+        secret_name = "rds!db-0e9fe2e2-9575-4c17-bf60-4def1d38a32f"
+        get_secret_value_response = secrets_client.get_secret_value(SecretId=secret_name)
+        secret = get_secret_value_response['SecretString']
+        secret_dict = json.loads(secret)
+        return secret_dict['password']
     except ClientError as e:
-        print(f"Error generating IAM authentication token: {e}")
+        print(f"Error retrieving secret from Secrets Manager: {e}")
         return None
 
-# Get the IAM authentication token
-rds_password = get_rds_auth_token()
+# Get the RDS password from Secrets Manager
+rds_password = get_rds_password()
 
 if not rds_password:
-    raise Exception("Unable to generate IAM authentication token.")
+    raise Exception("Unable to retrieve RDS password from Secrets Manager.")
 
-# Establish connection with IAM authentication token
+# Establish connection with the retrieved RDS password
 conn = psycopg2.connect(
     host=rds_host,
     database=rds_db_name,
