@@ -115,7 +115,7 @@ def careers():
             conn.commit()
 
             # Return success message
-            return f"File '{file_name}' uploaded successfully to S3 and your application has been submitted."
+            return f"File '{file_name}' uploaded successfully! Your application has been submitted."
 
         except NoCredentialsError:
             return "Credentials not available", 400
