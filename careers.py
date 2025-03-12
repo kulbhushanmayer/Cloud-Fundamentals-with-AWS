@@ -22,6 +22,7 @@ rds_host = os.getenv('RDS_HOST')  # RDS endpoint URL
 rds_db_name = 'thinknyx'
 rds_user = os.getenv('RDS_USER')  # Postgres username
 rds_port = '5432'  # Default PostgreSQL port
+secret_name = os.getenv('SECRET_NAME') # Secret to Read postgres password from
 
 # Initialize Secrets Manager client
 secrets_client = boto3.client('secretsmanager', region_name=os.getenv('AWS_REGION'))
@@ -29,7 +30,7 @@ secrets_client = boto3.client('secretsmanager', region_name=os.getenv('AWS_REGIO
 # Function to get RDS password from Secrets Manager
 def get_rds_password():
     try:
-        secret_name = "rds!db-0e9fe2e2-9575-4c17-bf60-4def1d38a32f"
+        #secret_name = "rds!db-0e9fe2e2-9575-4c17-bf60-4def1d38a32f"
         get_secret_value_response = secrets_client.get_secret_value(SecretId=secret_name)
         secret = get_secret_value_response['SecretString']
         secret_dict = json.loads(secret)
