@@ -6,7 +6,7 @@
          {
             "file_path": "/opt/app/data/flask.log",
             "log_group_name": "python-demoapp-loggroup",
-            "log_stream_name": "python-demoapp.logstream.{instance_id}",
+            "log_stream_name": "python-demoapp.logstream",
             "timestamp_format": "%Y-%m-%d %H:%M:%S"
          }
         ]
